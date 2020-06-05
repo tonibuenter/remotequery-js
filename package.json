@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tonibuenter/remote-query-js.git"
+    "url": "git+https://github.com/tonibuenter/remotequery-js.git"
   },
   "keywords": [
     "sql",
