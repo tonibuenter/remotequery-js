@@ -1,0 +1,31 @@
+{
+  "name": "remotequery",
+  "version": "0.0.1",
+  "description": "Simple middleware for executing SQL and other commands.",
+  "main": "remotequery.js",
+  "dependencies": {
+    "camelcase": "^5.3.1",
+    "pino": "^5.13.3",
+    "pino-pretty": "^4.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tonibuenter/remote-query-js.git"
+  },
+  "keywords": [
+    "sql",
+    "middleware",
+    "ORM",
+    "rest-to-sql"
+  ],
+  "author": "Toni A. Buenter",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tonibuenter/remote-query-js/issues"
+  },
+  "homepage": "https://github.com/tonibuenter/remote-query-js#readme"
+}
