@@ -1,5 +1,7 @@
 'use strict';
 
+/* WELCOME TO REMOTEQUERY !!! */
+
 const pino = require('pino');
 const fs = require('fs');
 
