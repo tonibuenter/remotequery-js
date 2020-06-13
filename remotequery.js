@@ -147,9 +147,10 @@ function buildCommandBlockTree(root, statementList, pointer) {
     return pointer
 }
 
-async function resolveIncludes(statements, context) {
+async function resolveIncludes(se, context) {
+    let statements = se.statements;
     context.includes = context.includes || {};
-    var statementList, resolvedList;
+    let statementList, resolvedList;
     const _inc = 'include';
 
     statementList = tokenize(statements.trim(), STATEMENT_DELIMITER,
@@ -173,7 +174,7 @@ async function resolveIncludes(statements, context) {
                 counter += 1;
                 if (counter < MAX_INCLUDES) {
                     context.includes[se.serviceId] = counter;
-                    let resolvedList2 = await resolveIncludes(se.statements, context);
+                    let resolvedList2 = await resolveIncludes(se, context);
 
                     for (let j = 0; j < resolvedList2.length; ++j) {
                         let s = resolvedList2[j];
@@ -197,7 +198,7 @@ async function resolveIncludes(statements, context) {
 
 async function prepareCommandBlock(se, context) {
     context = context || {};
-    let statementList = await resolveIncludes(se.statements, context);
+    let statementList = await resolveIncludes(se, context);
     let statementNode = {'cmd': 'serviceRoot', 'parameter': se.serviceId, 'statement': ''};
     buildCommandBlockTree(statementNode, statementList, 0);
     return statementNode
@@ -233,7 +234,7 @@ async function processCommandBlock(statementNode, request, currentResult,
 
 async function getServiceEntry(serviceId) {
     let result = await Dataservice.processSql(Config.getServiceEntrySql, {'serviceId': serviceId});
-    var serviceEntry = toList(result)[0];
+    let serviceEntry = toList(result)[0];
     if (!serviceEntry) {
         return;
     }
@@ -410,7 +411,7 @@ Commands.Registry['switch'] = switchCommand;
 async function foreachCommand(request, currentResult, statementNode, serviceEntry, context) {
 
     let indexResult = processCommand(statementNode.parameter, request, currentResult, serviceEntry, context);
-    if (!indexResult || !indexResult.table || !indexResult.table.length === 0) {
+    if (!(indexResult && indexResult.table && indexResult.table.length === 0)) {
         return currentResult;
     }
     let indexList = toList(indexResult);
