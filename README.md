@@ -1,1 +1,1 @@
-# Welcome to RemoteQuery for JavaScript
+# Welcome to RemoteQuery for JavaScript (Node.js)

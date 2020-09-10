@@ -5,10 +5,13 @@
   "main": "remotequery.js",
   "dependencies": {
     "camelcase": "^5.3.1",
+    "fast-memoize": "^2.5.2",
     "pino": "^5.13.3",
     "pino-pretty": "^4.0.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "prettier": "^2.1.1"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
