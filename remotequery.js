@@ -746,7 +746,7 @@ module.exports.processRqSqlText = processRqSqlText;
 
 function logResult(result) {
   if (result.exception) {
-    Config.logger.error('Result exception: %s', result.exception);
+    filteredError(`Result exception: ${result.exception}`);
   } else {
     Config.logger.info('Result: rowsAffected: %s', result.rowsAffected);
   }
