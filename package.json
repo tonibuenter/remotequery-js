@@ -1,6 +1,6 @@
 {
   "name": "remotequery",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Simple middleware for executing SQL and other commands.",
   "main": "remotequery.js",
   "dependencies": {

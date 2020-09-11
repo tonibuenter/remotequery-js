@@ -123,7 +123,14 @@ async function run(request, context) {
   //
   Config.logger.info('service %s found for %s ', serviceEntry.serviceId, request.userId);
   let statementNode = await prepareCommandBlock(serviceEntry, context);
-  return await processCommandBlock(statementNode, request, {}, serviceEntry, context);
+  let finalResult = await processCommandBlock(statementNode, request, {}, serviceEntry, context);
+  if (finalResult && request.output === 'list') {
+    return toList(finalResult);
+  }
+  if (finalResult && request.output === 'first') {
+    return toList(finalResult)[0];
+  }
+  return finalResult;
 }
 
 module.exports.run = run;
