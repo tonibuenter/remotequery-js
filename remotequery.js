@@ -19,7 +19,7 @@ const STATEMENT_ESCAPE = '\\';
 let CONTEXT_COUNTER = 1;
 
 function processLog() {
-  let p = { logLines: [], addLine: addLine, time: Date.now() };
+  let p = { logLines: [], addLine, time: Date.now() };
   return p;
 
   function addLine(message, code) {
@@ -48,6 +48,18 @@ Config.logger = pino({
 
 const Commands = {};
 
+const DirectServices = {};
+let fnCounter = 0;
+function addService(serviceId, roles, serviceFunction, nodeFunctionName) {
+  let functionName = nodeFunctionName || 'fn_node_' + fnCounter++;
+  Commands.Registry.Node[nodeFunctionName] = serviceFunction;
+  let statements = ['node ' + functionName];
+  DirectServices[serviceId] = { serviceId, roles, statements };
+  return DirectServices;
+}
+
+module.exports.addService = addService;
+
 module.exports.Commands = Commands;
 
 Commands.StartBlock = {
@@ -69,9 +81,11 @@ Commands.Registry.Node = {};
 
 async function run(request, context) {
   context = context || { contextId: CONTEXT_COUNTER++, recursion: 0 };
+  const output = request.output;
+  request = { ...request, output: null };
 
   if (!request.userId) {
-    Config.logger.info(
+    Config.logger.warn(
       'request has no userId set. Process continues with userId: %s (%s)',
       ANONYMOUS,
       request.serviceId
@@ -86,7 +100,9 @@ async function run(request, context) {
   //
   let serviceEntry = await getServiceEntry(request.serviceId);
   if (!serviceEntry) {
-    return { exception: 'No ServiceEntry found for ' + request.serviceId };
+    let exception = `No ServiceEntry found for ${request.serviceId}`;
+    Config.logger.warn(exception);
+    return { exception };
   }
 
   //
@@ -124,10 +140,10 @@ async function run(request, context) {
   Config.logger.info('service %s found for %s ', serviceEntry.serviceId, request.userId);
   let statementNode = await prepareCommandBlock(serviceEntry, context);
   let finalResult = await processCommandBlock(statementNode, request, {}, serviceEntry, context);
-  if (finalResult && request.output === 'list') {
+  if (finalResult && output === 'list') {
     return toList(finalResult);
   }
-  if (finalResult && request.output === 'first') {
+  if (finalResult && output === 'first') {
     return toList(finalResult)[0];
   }
   return finalResult;
@@ -174,10 +190,7 @@ async function resolveIncludes(se, context) {
       try {
         serviceId = parse_statement(stmt).parameter;
         let se = await getServiceEntry(serviceId);
-        if (!se) {
-          // noinspection ExceptionCaughtLocallyJS
-          throw 'Did not find service for include command: ' + serviceId;
-        }
+        if (!se) throw `Did not find service for include command: ${serviceId}`;
 
         let counter = context.includes[se.serviceId] || 0;
         counter += 1;
@@ -239,8 +252,12 @@ async function processCommandBlock(statementNode, request, currentResult, servic
 }
 
 async function getServiceEntry(serviceId) {
-  let result = await Dataservice.processSql(Config.getServiceEntrySql, { serviceId: serviceId });
-  let serviceEntry = toList(result)[0];
+  let serviceEntry = DirectServices[serviceId];
+  if (typeof serviceEntry === 'object') {
+  } else {
+    let result = await Dataservice.processSql(Config.getServiceEntrySql, { serviceId: serviceId });
+    serviceEntry = toList(result)[0];
+  }
   if (!serviceEntry) {
     return;
   }
@@ -447,7 +464,7 @@ async function whileCommand(request, currentResult, statementNode, serviceEntry,
 
 Commands.Registry['while'] = whileCommand;
 
-async function abortCommand(request, currentResult, statementNode, serviceEntry, context) {
+async function abortCommand() {
   return 'abort';
 }
 
