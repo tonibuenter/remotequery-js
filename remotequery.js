@@ -146,13 +146,13 @@ async function run(request, context) {
   const result = await runIntern(request, context);
   const output = request.output;
   if (result && output === 'list') {
-    return toList(finalResult);
+    return toList(result);
   }
   if (result && output === 'single') {
     return result.table ? result.table[0][0] : undefined;
   }
   if (result && output === 'first') {
-    return toFirst(finalResult);
+    return toFirst(result);
   }
   return result;
 }
