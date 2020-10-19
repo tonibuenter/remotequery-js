@@ -50,6 +50,7 @@ const Commands = {};
 
 const DirectServices = {};
 let fnCounter = 0;
+
 function addService(serviceId, roles, serviceFunction, nodeFunctionName) {
   let functionName = nodeFunctionName || 'fn_node_' + fnCounter++;
   Commands.Registry.Node[nodeFunctionName] = serviceFunction;
@@ -79,10 +80,8 @@ Commands.EndBlock = {
 Commands.Registry = {};
 Commands.Registry.Node = {};
 
-async function run(request, context) {
+async function runIntern(request, context) {
   context = context || { contextId: CONTEXT_COUNTER++, recursion: 0 };
-  const output = request.output;
-  request = { ...request, output: null };
 
   if (!request.userId) {
     Config.logger.warn(
@@ -139,14 +138,23 @@ async function run(request, context) {
   //
   Config.logger.info('service %s found for %s ', serviceEntry.serviceId, request.userId);
   let statementNode = await prepareCommandBlock(serviceEntry, context);
-  let finalResult = await processCommandBlock(statementNode, request, {}, serviceEntry, context);
-  if (finalResult && output === 'list') {
+  let result = await processCommandBlock(statementNode, request, {}, serviceEntry, context);
+  return result;
+}
+
+async function run(request, context) {
+  const result = await runIntern(request, context);
+  const output = request.output;
+  if (result && output === 'list') {
     return toList(finalResult);
   }
-  if (finalResult && output === 'first') {
-    return toList(finalResult)[0];
+  if (result && output === 'single') {
+    return result.table ? result.table[0][0] : undefined;
   }
-  return finalResult;
+  if (result && output === 'first') {
+    return toFirst(finalResult);
+  }
+  return result;
 }
 
 module.exports.run = run;
@@ -256,7 +264,7 @@ async function getServiceEntry(serviceId) {
   if (typeof serviceEntry === 'object') {
   } else {
     let result = await Dataservice.processSql(Config.getServiceEntrySql, { serviceId: serviceId });
-    serviceEntry = toList(result)[0];
+    serviceEntry = toFirst(result);
   }
   if (!serviceEntry) {
     return;
@@ -330,7 +338,7 @@ Commands.Registry['copy-if-empty'] = setCommand;
 async function serviceIdCommand(request, currentResult, statementNode, serviceEntry, context) {
   let iRequest = deepClone(request);
   iRequest.serviceId = statementNode.parameter;
-  return await run(iRequest, context);
+  return await runIntern(iRequest, context);
 }
 
 Commands.Registry['serviceId'] = serviceIdCommand;
@@ -353,7 +361,7 @@ async function parametersCommand(request, currentResult, statementNode, serviceE
       request.parameters[head] = '';
     }
   }
-  let firstRow = toList(result)[0];
+  let firstRow = toFirst(result);
   if (firstRow) {
     for (let [name, value] of Object.entries(firstRow)) {
       if (!request.parameters[name] || overwrite) {
@@ -891,24 +899,20 @@ module.exports.initRepository = initRepository;
 //
 
 function toList(serviceData) {
-  var i,
-    j,
-    list = [],
-    table,
-    header,
-    head,
-    row,
-    obj;
+  if (Array.isArray(serviceData)) {
+    return serviceData;
+  }
+  var list = [];
   if (serviceData.table && serviceData.header) {
-    header = serviceData.header;
-    table = serviceData.table;
+    let header = serviceData.header;
+    let table = serviceData.table;
 
-    for (i = 0; i < table.length; i++) {
-      obj = {};
+    for (let i = 0; i < table.length; i++) {
+      let obj = {};
       list.push(obj);
-      row = table[i];
-      for (j = 0; j < header.length; j++) {
-        head = header[j];
+      let row = table[i];
+      for (let j = 0; j < header.length; j++) {
+        let head = header[j];
         obj[head] = row[j];
       }
     }
@@ -917,6 +921,12 @@ function toList(serviceData) {
 }
 
 module.exports.toList = toList;
+
+function toFirst(serviceData) {
+  return toList(serviceData)[0];
+}
+
+module.exports.toFirst = toFirst;
 
 function texting(templateString, map) {
   if (typeof map !== 'object' || typeof templateString !== 'string') {
