@@ -80,8 +80,15 @@ Commands.EndBlock = {
 Commands.Registry = {};
 Commands.Registry.Node = {};
 
-async function runIntern(request, context) {
-  context = context || { contextId: CONTEXT_COUNTER++, recursion: 0 };
+async function runIntern(request, context = {}) {
+  context = {
+    contextId: CONTEXT_COUNTER++,
+    recursion: 0,
+    rowsAffectedList: [],
+    userMessages: [],
+    systemMessages: [],
+    ...context
+  };
 
   if (!request.userId) {
     Config.logger.warn(
@@ -138,11 +145,10 @@ async function runIntern(request, context) {
   //
   Config.logger.info('service %s found for %s ', serviceEntry.serviceId, request.userId);
   let statementNode = await prepareCommandBlock(serviceEntry, context);
-  let result = await processCommandBlock(statementNode, request, {}, serviceEntry, context);
-  return result;
+  return await processCommandBlock(statementNode, request, {}, serviceEntry, context);
 }
 
-async function run(request, context) {
+async function run(request, context = {}) {
   const result = await runIntern(request, context);
   const output = request.output;
   if (result && output === 'list') {
@@ -235,7 +241,6 @@ async function prepareCommandBlock(se, context) {
 module.exports.prepareCommandBlock = prepareCommandBlock;
 
 async function processCommandBlock(statementNode, request, currentResult, serviceEntry, context) {
-  context.recursion = context.recursion || 0;
   context.recursion++;
 
   if (context.recursion > MAX_RECURSION) {
@@ -919,8 +924,27 @@ function toList(serviceData) {
   }
   return list;
 }
-
 module.exports.toList = toList;
+
+function toMap(data, arg0) {
+  return toMapByColumn(data, arg0);
+}
+module.exports.toMap = toMap;
+
+function toMapByColumn(data, column) {
+  let list = toList(data);
+  return list.reduce((a, e) => (a[getKey(e)] = e), {});
+
+  function getKey(e) {
+    if (typeof column === 'string') {
+      return e[column];
+    }
+    if (typeof column === 'function') {
+      return column(e);
+    }
+  }
+}
+module.exports.toMapByColumn = toMapByColumn;
 
 function toFirst(serviceData) {
   return toList(serviceData)[0];
